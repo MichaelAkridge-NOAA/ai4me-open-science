@@ -1,5 +1,5 @@
 # AI4ME Open Science | Resource Hub
-A curated collection of AI/ML resources, presentations, and open-science tools for AI Marine Ecosystem research.
+A curated collection of AI/ML resources, presentations, and open-science tools for **AI Marine Ecosystem** research.
 
 **Link → [michaelakridge-noaa.github.io/ai4me-open-science](https://michaelakridge-noaa.github.io/ai4me-open-science)**
 ---
