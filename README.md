@@ -15,7 +15,7 @@ A curated collection of AI/ML resources, presentations, and open-science tools f
 - **AI4ME Cookbook** — AI/ML Computer Vision workflows and notebooks for marine ecosystems  
   <https://github.com/MichaelAkridge-NOAA/ai4me-cookbook>
 
-- **Gemini GEM Lab** — Curated Gemini AI prompts for NOAA scientific workflows  
+- **Gemini GEM Lab** — In development Gemini AI prompts for NOAA scientific workflows  
   <https://github.com/MichaelAkridge-NOAA/noaa-gem-lab>
 
 - **Optics SI Cloud Tools** — Cloud workstation setup, codelabs, and annotation pipelines  
