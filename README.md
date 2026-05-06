@@ -1,15 +1,21 @@
-# AI4ME Resource Hub
-A curated collection of AI/ML resources, presentations, and open-science tools for AI Marine Ecosystems research.
+# AI4ME Open Science | Resource Hub
+A curated collection of AI/ML resources, presentations, and open-science tools for AI Marine Ecosystem research.
 
-**Link → [michaelakridge-noaa.github.io/\<repo-name\>/](https://michaelakridge-noaa.github.io/)**
+**Link → [michaelakridge-noaa.github.io/ai4me-open-science](https://michaelakridge-noaa.github.io/ai4me-open-science)**
 ---
 
 ## Contents
 | Path | Description |
 |------|-------------|
-| `docs/` | GitHub Pages site root |
 | `docs/index.html` | Hub landing page — resource cards, presentations index |
-| `docs/presentations/agentic-ai-discussion.html` | *From Data Wrangling to Agent Managing* — ARP Discussion, Apr 2026 |
+| `docs/presentations/agentic-ai-discussion.html` | *From Data Wrangling to Agent Managing* —  Discussion, Apr 2026 |
+
+## Screenshots
+
+| Home Page |  Presentations | Resource Links |
+|------|-----------------------|----------------|
+| ![Home](./img/screenshot_home.png) | ![Featured Presentation](./img/screenshot_presentation.png) | ![Resource Links](./img/screenshot_resources.png) |
+
 
 ## Related Resources
 
