@@ -7,7 +7,7 @@ A curated collection of AI/ML resources, presentations, and open-science tools f
 ## Screenshots
 | Home Page |  Presentations | Resource Links |
 |------|-----------------------|----------------|
-| ![Home](./img/screenshot_home.png) | ![Featured Presentation](./img/screenshot_presentation.png) | ![Resource Links](./img/screenshot_resources.png) |
+| [![Home](./img/screenshot_home.png)](https://michaelakridge-noaa.github.io/ai4me-open-science/) | [![Featured Presentation](./img/screenshot_presentation.png)](https://michaelakridge-noaa.github.io/ai4me-open-science/presentations/agentic-ai-discussion.html) | [![Resource Links](./img/screenshot_resources.png)](https://michaelakridge-noaa.github.io/ai4me-open-science/#resources) |
 
 
 ## Related Resources
