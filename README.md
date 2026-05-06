@@ -4,14 +4,7 @@ A curated collection of AI/ML resources, presentations, and open-science tools f
 **Link → [michaelakridge-noaa.github.io/ai4me-open-science](https://michaelakridge-noaa.github.io/ai4me-open-science)**
 ---
 
-## Contents
-| Path | Description |
-|------|-------------|
-| `docs/index.html` | Hub landing page — resource cards, presentations index |
-| `docs/presentations/agentic-ai-discussion.html` | *From Data Wrangling to Agent Managing* —  Discussion, Apr 2026 |
-
 ## Screenshots
-
 | Home Page |  Presentations | Resource Links |
 |------|-----------------------|----------------|
 | ![Home](./img/screenshot_home.png) | ![Featured Presentation](./img/screenshot_presentation.png) | ![Resource Links](./img/screenshot_resources.png) |
