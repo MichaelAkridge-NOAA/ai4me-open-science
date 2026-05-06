@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>From Data Wrangling to Agent Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F2EEE6;
+    --paper-2: #EAE4D6;
+    --ink: #15140F;
+    --ink-2: #3B372E;
+    --mute: #847E6F;
+    --rule: #1C1B16;
+    --accent: oklch(0.60 0.14 35);
+    --accent-2: oklch(0.72 0.15 60);
+    --teal: oklch(0.62 0.10 200);
+    --green: oklch(0.62 0.12 150);
+    --serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  html, body { margin: 0; background: #0a0a0a; }
+  deck-stage { background: #0a0a0a; }
+
+  section.slide {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 34px;
+    line-height: 1.35;
+    position: relative;
+    overflow: hidden;
+  }
+  section.slide.ink { background: var(--ink); color: var(--paper); }
+  section.slide.ink .mute { color: #B8B2A2; }
+  section.slide.ink .num { color: var(--paper); }
+
+  .pad {
+    position: absolute;
+    inset: 100px 120px 100px 120px;
+    display: flex;
+    flex-direction: column;
+  }
+  .eyebrow {
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .ink .eyebrow { color: #B8B2A2; }
+  .num {
+    font-family: var(--mono);
+    font-size: 24px;
+    letter-spacing: 0.08em;
+    color: var(--mute);
+  }
+  .corner-tl { position: absolute; top: 48px; left: 120px; display: flex; gap: 40px; align-items: center; }
+  .corner-br { position: absolute; bottom: 48px; right: 120px; font-family: var(--mono); font-size: 24px; color: var(--mute); letter-spacing: 0.08em; }
+  .corner-bl { position: absolute; bottom: 48px; left: 120px; font-family: var(--mono); font-size: 24px; color: var(--mute); letter-spacing: 0.08em; }
+  .ink .corner-br, .ink .corner-bl { color: #B8B2A2; }
+
+  h2.title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 96px;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  h2.title em { color: var(--accent); font-style: italic; }
+  .body { font-size: 34px; line-height: 1.4; }
+  .small { font-size: 28px; line-height: 1.4; }
+  .mute { color: var(--mute); }
+  .accent { color: var(--accent); }
+
+  /* ------- ANIMATIONS ------- */
+  /* Driven by JS via WAAPI on slide activation — CSS-only keyframes get suppressed by deck-stage's parent opacity transition. */
+  .anim { opacity: 1; }
+
+  @keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+  .caret { display: inline-block; width: 14px; height: 0.95em; vertical-align: -0.12em; background: currentColor; margin-left: 4px; animation: blink 1s steps(2) infinite; }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(206,103,68,0.5); }
+    70% { box-shadow: 0 0 0 24px rgba(206,103,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(206,103,68,0); }
+  }
+  @keyframes scan-line {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+  @keyframes typewriter {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+  @keyframes spin-slow {
+    from { transform: rotate(0); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Title slide */
+  .title-slide { padding: 0; }
+  .title-slide .top {
+    position: absolute; top: 48px; left: 120px; right: 120px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--mono); font-size: 24px; color: var(--mute); letter-spacing: 0.1em;
+  }
+  .title-slide .center {
+    position: absolute; left: 120px; right: 120px; top: 50%; transform: translateY(-54%);
+  }
+  .title-slide h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 156px;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+  .title-slide h1 em { color: var(--accent); font-style: italic; }
+  @keyframes arrow-in { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: none; } }
+  .title-slide .arrow { display: inline-block; color: var(--accent); font-style: italic; }
+  .title-slide .subtitle {
+    margin-top: 48px;
+    font-size: 36px;
+    color: var(--ink-2);
+    max-width: 1200px;
+  }
+  .title-slide .bottom {
+    position: absolute; bottom: 48px; left: 120px; right: 120px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    font-family: var(--mono); font-size: 24px; color: var(--mute); letter-spacing: 0.08em;
+  }
+  /* dot field bg */
+  .title-bg { position: absolute; inset: 0; pointer-events: none; }
+  .title-bg .dot {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); opacity: 0.5;
+  }
+
+  /* Section slide */
+  .section-slide .kicker-tag {
+    font-size: 26px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 32px;
+  }
+
+  /* RACE SLIDE — AI Answer vs AI Agent */
+  .race {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 40px;
+    flex: 1;
+  }
+  .race .col {
+    display: flex; flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .race .col.left { background: #FAF6EC; border: 1px solid rgba(28,27,22,0.18); }
+  .race .col.right { background: var(--ink); color: var(--paper); border: 1px solid var(--ink); }
+  .race .col .head {
+    padding: 24px 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(28,27,22,0.18);
+    font-size: 24px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 500;
+  }
+  .race .col.right .head { border-bottom-color: rgba(255,255,255,0.18); color: var(--paper); }
+  .race .col.right .head .label-accent { color: var(--accent); }
+  .race .col .head .pill {
+    font-family: var(--mono); font-size: 24px; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid currentColor; opacity: 0.6;
+  }
+  .race .col .body-area {
+    padding: 28px 32px;
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 24px;
+    line-height: 1.55;
+    overflow: hidden;
+    position: relative;
+  }
+  .race .col.left .body-area { color: var(--ink-2); }
+  .race .col.right .body-area { color: #DCD7C8; }
+  .race .col.right .step { color: #B8B2A2; }
+  .race .col.right .ok { color: #A4D9A8; }
+  .race .col.right .warn { color: #E8C28A; }
+  .race .col.right .err { color: #E38A8A; }
+  .race .col.right .accent { color: var(--accent); }
+  .race .col .footer {
+    padding: 18px 32px;
+    border-top: 1px solid rgba(28,27,22,0.15);
+    font-size: 24px;
+    display: flex; justify-content: space-between; gap: 16px;
+    font-family: var(--sans);
+    letter-spacing: 0.05em;
+    color: var(--mute);
+  }
+  .race .col.right .footer { border-top-color: rgba(255,255,255,0.15); color: #B8B2A2; }
+  @keyframes stamp-in { from { opacity: 0; transform: rotate(-6deg) scale(0.8); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
+  .race .col .stamp {
+    position: absolute; right: 24px; bottom: 80px;
+    font-family: var(--serif); font-size: 56px; font-style: italic;
+    opacity: 0;
+  }
+  .race .col .stamp.show { animation: stamp-in 600ms cubic-bezier(.2,1.4,.4,1) both; }
+  .race .col.left .stamp { color: var(--mute); }
+  .race .col.right .stamp { color: var(--accent); }
+
+  .typed-line { display: block; white-space: pre-wrap; }
+  .typed-line.pending { opacity: 0.4; }
+
+  /* loop diagram with pulse */
+  .loop-anim {
+    margin-top: 60px;
+    position: relative;
+    height: 460px;
+  }
+  .loop-anim svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .loop-anim .node {
+    position: absolute;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    transform: translate(-50%, -50%);
+  }
+  .ink .loop-anim .node { background: var(--ink); border-color: var(--paper); }
+  .loop-anim .node.active { background: var(--accent); color: var(--paper); border-color: var(--accent); animation: pulse-ring 1.2s ease-out; }
+  .loop-anim .node .l { font-family: var(--mono); font-size: 24px; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 6px; }
+  .ink .loop-anim .node .l { color: var(--accent-2); }
+  .loop-anim .node.active .l { color: rgba(255,255,255,0.85); }
+  .loop-anim .node .t { font-family: var(--serif); font-size: 36px; line-height: 1; }
+  .loop-anim .node.active .t { color: var(--paper); }
+
+  /* leverage bars */
+  .leverage {
+    margin-top: 60px;
+    display: flex; flex-direction: column; gap: 32px;
+  }
+  .lever-row {
+    display: grid;
+    grid-template-columns: 380px 1fr 220px;
+    align-items: center;
+    gap: 32px;
+    font-size: 30px;
+  }
+  .lever-row .lab { font-family: var(--sans); font-weight: 500; }
+  .lever-row .bar-wrap {
+    height: 36px;
+    background: rgba(28,27,22,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .lever-row .bar { height: 100%; width: 0; background: var(--ink-2); }
+  .lever-row .bar.agent { background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .lever-row .val { font-family: var(--mono); font-size: 26px; color: var(--mute); text-align: right; }
+
+  /* compare table */
+  table.compare {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 40px;
+    font-size: 30px;
+  }
+  table.compare th, table.compare td {
+    text-align: left;
+    padding: 24px 24px;
+    vertical-align: top;
+    border-bottom: 1px solid rgba(28,27,22,0.18);
+  }
+  table.compare th {
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 18px;
+  }
+  table.compare td.label {
+    font-weight: 500;
+    color: var(--mute);
+    font-size: 24px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    width: 240px;
+  }
+  table.compare td.next .accent-dot { color: var(--accent); }
+  table.compare tr.row-anim { opacity: 1; }
+
+  /* terminal demo */
+  .demo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-top: 40px;
+    flex: 1;
+  }
+  .demo-card { display: flex; flex-direction: column; }
+  .demo-card .label {
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 20px;
+  }
+  .terminal {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 6px;
+    padding: 32px 36px;
+    font-family: var(--mono);
+    font-size: 24px;
+    line-height: 1.6;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .terminal::after {
+    content: '';
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .is-active .terminal::after { animation: scan-line 3.4s ease-in-out 800ms 1; }
+  .terminal .prompt { color: var(--accent); }
+  .terminal .user { color: #F4EEE0; }
+  .terminal .comment { color: #847E6F; }
+  .terminal .agent { color: #B8E0C0; }
+  .terminal .file { color: #E8C28A; }
+  .terminal .diff-add { color: #B8E0C0; }
+  .terminal .diff-del { color: #E38A8A; }
+  .terminal .step { color: #B8B2A2; }
+  .terminal .row { opacity: 1; }
+
+  /* discussion */
+  .discussion ol {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 60px;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    margin: 0; padding: 0;
+    list-style: none;
+    counter-reset: q;
+  }
+  .discussion ol li {
+    counter-increment: q;
+    padding: 28px 0;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    align-items: baseline;
+    border-bottom: 1px solid rgba(28,27,22,0.15);
+  }
+  .discussion ol li::before {
+    content: counter(q, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 26px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  /* two-col */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 96px;
+    margin-top: 48px;
+  }
+  .two-col h4 {
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin: 0 0 20px 0;
+  }
+  .two-col ul { margin: 0; padding: 0; list-style: none; }
+  .two-col li {
+    font-size: 32px;
+    line-height: 1.35;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(28,27,22,0.12);
+  }
+  .two-col li:first-child { border-top: 1px solid rgba(28,27,22,0.12); }
+
+  /* checklist */
+  .checklist {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .checklist .row {
+    display: grid;
+    grid-template-columns: 80px 320px 1fr;
+    align-items: baseline;
+    padding: 28px 0;
+    border-bottom: 1px solid rgba(28,27,22,0.15);
+    font-size: 30px;
+  }
+  .checklist .row .n { font-family: var(--mono); color: var(--accent); font-size: 24px; letter-spacing: 0.1em; }
+  .checklist .row .t { font-weight: 500; }
+  .checklist .row .d { color: var(--ink-2); font-size: 28px; line-height: 1.4; }
+
+  /* resources */
+  .res-list {
+    margin-top: 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px 96px;
+  }
+  .res-list .r .k { font-family: var(--mono); color: var(--mute); font-size: 24px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .res-list .r .v { font-family: var(--serif); font-size: 44px; line-height: 1.1; margin-top: 12px; }
+  .res-list .r .u { font-family: var(--mono); color: var(--accent); font-size: 24px; margin-top: 10px; word-break: break-all; }
+
+  /* defbox */
+  .defbox {
+    margin-top: 48px;
+    padding: 56px 0 0 0;
+    border-top: 1px solid var(--rule);
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 48px;
+    align-items: baseline;
+  }
+  .defbox .k { font-family: var(--mono); font-size: 24px; letter-spacing: 0.1em; color: var(--mute); text-transform: uppercase; }
+  .defbox .v { font-family: var(--serif); font-size: 84px; line-height: 1.05; }
+  .defbox .v em { color: var(--accent); font-style: italic; display: inline-block; }
+  .defbox .v em { opacity: 1; }
+
+  /* stop list */
+  .stop-list { margin-top: 40px; display: flex; flex-direction: column; }
+  .stop-list .row {
+    display: grid;
+    grid-template-columns: 600px 1fr;
+    gap: 60px;
+    padding: 32px 0;
+    border-top: 1px solid rgba(28,27,22,0.15);
+    align-items: baseline;
+  }
+  .stop-list .row:last-child { border-bottom: 1px solid rgba(28,27,22,0.15); }
+  .stop-list .row .when { font-family: var(--serif); font-size: 44px; line-height: 1.05; }
+  .stop-list .row .why { font-size: 26px; color: var(--ink-2); line-height: 1.4; }
+
+  /* pattern */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-top: 40px;
+  }
+  .pattern {
+    padding: 32px 36px;
+    background: var(--paper-2);
+    border-radius: 4px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .pattern .pname { font-weight: 600; font-size: 28px; letter-spacing: 0.02em; }
+  .pattern .pex { font-family: var(--mono); font-size: 24px; color: var(--ink-2); line-height: 1.5; }
+  .pattern .pwhy { font-size: 24px; color: var(--mute); letter-spacing: 0.05em; text-transform: uppercase; }
+
+  /* big quote slide w typewriter */
+  .typewriter-line {
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 4px solid currentColor;
+    width: 0;
+    font-family: var(--mono);
+    font-size: 40px;
+  }
+  .is-active .typewriter-line.t1 { animation: typewriter 2.4s steps(48) 300ms forwards, blink 1s steps(2) 2700ms infinite; }
+  .is-active .typewriter-line.t2 { animation: typewriter 1.8s steps(28) 3000ms forwards, blink 1s steps(2) 4900ms infinite; }
+
+  /* progressive reveal lists w line */
+  .reveal-list { margin-top: 40px; display: flex; flex-direction: column; }
+  .reveal-list .item {
+    padding: 28px 0;
+    border-bottom: 1px solid rgba(28,27,22,0.15);
+    display: grid; grid-template-columns: 80px 1fr; gap: 24px; align-items: baseline;
+    opacity: 1;
+  }
+  .reveal-list .item:first-child { border-top: 1px solid rgba(28,27,22,0.15); }
+  .reveal-list .item .n { font-family: var(--mono); color: var(--accent); font-size: 24px; letter-spacing: 0.1em; }
+  .reveal-list .item .t { font-family: var(--serif); font-size: 48px; line-height: 1.1; }
+  .reveal-list .item .d { font-size: 24px; color: var(--ink-2); margin-top: 8px; line-height: 1.4; }
+
+</style>
+</head>
+<body>
+
+<script type="application/json" id="speaker-notes">
+[
+  "Welcome. Title's a thesis statement: the job is shifting. We've spent years getting good at wrangling data in R. The new leverage is getting good at managing agents that do a lot of that wrangling for us. Today's twenty minutes is a tour of what that looks like for our division.",
+  "Quick roadmap. Define what agentic actually means. Show the dramatic difference between a chat answer and an agent run. Walk through five real ARP workflows. Open it up for discussion.",
+  "Section one. Most people in this room have used ChatGPT or Gemini. They've also used GitHub Copilot autocomplete. Today's question: how is an agent different from those? Answer is — it's a category change.",
+  "Working definition. Don't get hung up on vendor names. An agent takes a goal, makes a plan, uses tools to do real work, observes the result, and iterates. Plan, act, observe, iterate. Four verbs. Watch them animate in.",
+  "This is the slide I want to spend a minute on. Same prompt — clean a benthic photoquadrat CSV — fed to a chat AI on the left and an agent on the right. The chat gives you a wall of text. The agent reads your file, writes the script, runs it, opens a PR. Different category of tool. Look at where the work actually got done.",
+  "The five-step loop. Goal, plan, act, observe, iterate. Pulse traces the cycle. Every agentic tool is some version of this. Recognize the loop, you can use any of them.",
+  "Comparison table. Unit of work moves from keystroke to task. Input moves from cursor position to a goal in plain English. Tools move from suggestions to your actual shell, files, R session, git.",
+  "Leverage chart. This is what people who've been using agents are reporting back. Tasks that took an afternoon take twenty minutes. Tasks that took twenty minutes take three. The catch — the lift only shows up if you already know how to code. Agents amplify expertise; they don't replace it.",
+  "Section two. Where this lands in our division. Five real workflows, all within reach today.",
+  "First demo sketch. SOP draft from raw field notes. Hand the agent voice memos and a reference SOP. You get a 70% draft to edit. You start from structure, not blank page.",
+  "Benthic photoquadrat CSV. Agent reads files, proposes a cleaning function, runs it, shows you the diff. You commit when it's right.",
+  "Refactoring the 600-line fish-survey script. Every group has one. Agent breaks it into functions, adds roxygen, writes tests, leaves a thin orchestrator. Mechanical work, perfect agent territory.",
+  "Climate-logger QAQC. Drift, gaps, out-of-range. Agent writes the checks, runs them, shows what it flagged. You tune thresholds in conversation.",
+  "Packaging. Folder of helpers becomes a real R package — DESCRIPTION, NAMESPACE, tests, pkgdown, GitHub Actions. Reusable infrastructure for the division.",
+  "First discussion prompt. Don't answer yet. Just sit with it. If you had a capable junior for one hour this week, what would you point them at?",
+  "Section three. The new skill. Looks more like running a team member than using a tool. Why experienced coders get the biggest lift — they already know how to brief, review, and push back.",
+  "Four prompt patterns that consistently work. Give it context. Constrain the output. Plan before act. Show your work.",
+  "Knowing when to stop the agent is as important as knowing how to start it. Going in circles, scope creep, creative test failures, undecipherable diffs — stop, narrow, restart.",
+  "Reproducibility and code review still win. Non-negotiable for science. Same git, same review, same renv lockfile, same seed. Agent is a contributor, not an exception.",
+  "Getting started this week. Pick something small. Pick one tool. Write a real prompt. Review the diff. Report back. The division learns faster than any one of us.",
+  "Open discussion. Where does it fit in our SOPs? What do we agree on as a division? Who wants to try one workflow and report back next meeting?",
+  "Resources. Copilot CLI on-ramp. ARP site for context. Pair with me on one workflow."
+]
+</script>
+
+<deck-stage width="1920" height="1080">
+
+  <!-- 01 TITLE -->
+  <section class="slide title-slide" data-label="Title">
+    <div class="title-bg" id="title-bg"></div>
+    <div class="top">
+      <span class="anim d1">PIFSC · ESD · ARP</span>
+      <span class="anim d1">DISCUSSION · APR 2026</span>
+    </div>
+    <div class="center">
+      <h1>
+        <span class="anim d1" style="display:block;">From Data Wrangling</span>
+        <span class="anim d2" style="display:block;">to <em>Agent Managing.</em></span>
+      </h1>
+      <div class="subtitle anim d4">Agentic AI in our workflows — what it is, why it's different from a chat answer, and where it fits in ARP.</div>
+    </div>
+    <div class="bottom">
+      <span class="anim d5">AN ARP DISCUSSION · NOT A PITCH</span>
+      <span class="anim d5">→ → →</span>
+    </div>
+  </section>
+
+  <!-- 02 AGENDA -->
+  <section class="slide" data-label="What we'll cover">
+    <div class="corner-tl"><span class="num anim d1">02 / 22</span><span class="eyebrow anim d1">Roadmap</span></div>
+    <div class="pad" style="justify-content: center;">
+      <h2 class="title anim d1">What we'll cover.</h2>
+      <div class="two-col" style="margin-top: 80px;">
+        <div class="anim d2">
+          <h4>First half · concepts</h4>
+          <ul>
+            <li>Agentic, defined in four verbs</li>
+            <li><strong>The dramatic difference</strong> — answer vs agent</li>
+            <li>The loop, animated</li>
+            <li>Why coders get the biggest lift</li>
+          </ul>
+        </div>
+        <div class="anim d4">
+          <h4>Second half · our work</h4>
+          <ul>
+            <li>Five concrete ARP workflows</li>
+            <li>Prompt patterns that work</li>
+            <li>Knowing when to stop the agent</li>
+            <li>Open questions for the room</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="corner-br anim d6">20 MIN · 22 SLIDES</div>
+  </section>
+
+  <!-- 03 SECTION I -->
+  <section class="slide ink section-slide" data-label="Section — The shift">
+    <div class="corner-tl"><span class="num anim d1" style="color:#B8B2A2">I / III</span></div>
+    <div class="pad" style="justify-content: center;">
+      <div class="kicker-tag anim d1">Part one</div>
+      <h2 class="title anim d2" style="font-size: 148px; color: var(--paper);">The shift: <br/>simple chat<em>→</em> agent.</h2>
+      <div class="mute anim d4" style="margin-top: 60px; max-width: 1400px; font-size: 36px; line-height: 1.4;">A genuine category change. Not a faster autocomplete. Not a smarter chat box.</div>
+    </div>
+    <div class="corner-br">03 / 22</div>
+  </section>
+
+  <!-- 04 DEFINITION (animated four verbs) -->
+  <section class="slide" data-label="A working definition">
+    <div class="corner-tl"><span class="num anim d1">04 / 22</span><span class="eyebrow anim d1">Working definition</span></div>
+    <div class="pad" style="justify-content: center;">
+      <h2 class="title anim d1">An <em>agent</em> is a program that takes a goal and iterates toward it — using tools, reading results, correcting itself.</h2>
+      <div class="defbox">
+        <div class="k anim d3">The four verbs</div>
+        <div class="v">
+          <em class="w1">Plan.</em>&nbsp;&nbsp;<em class="w2">Act.</em>&nbsp;&nbsp;<em class="w3">Observe.</em>&nbsp;&nbsp;<em class="w4">Iterate.</em>
+        </div>
+      </div>
+      <div class="small mute anim d8" style="margin-top: 40px;">Ignore vendor names. If a tool does these four things in a loop, it's agentic.</div>
+    </div>
+  </section>
+
+  <!-- 05 RACE: AI Answer vs AI Agent — same prompt, different worlds -->
+  <section class="slide" data-label="Answer vs Agent — the race">
+    <div class="corner-tl"><span class="num anim d1">05 / 22</span><span class="eyebrow anim d1">Same prompt · two worlds</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Same prompt. Watch what <em>each one does.</em></h2>
+      <div class="small mute anim d2" style="margin-top: 16px;"><span style="font-family:var(--mono); font-size: 26px;">› clean my benthic photoquadrat CSV — site codes don't match the lookup</span></div>
+
+      <div class="race anim d3">
+        <!-- LEFT: AI Answer -->
+        <div class="col left" id="raceL">
+          <div class="head">
+            <span>AI Answer · chat</span>
+            <span class="pill">read-only</span>
+          </div>
+          <div class="body-area" id="raceLBody"></div>
+          <div class="footer">
+            <span>OUTPUT · TEXT</span>
+            <span id="raceLTime">0.0s</span>
+          </div>
+          <div class="stamp" id="raceLStamp">advice.</div>
+        </div>
+        <!-- RIGHT: AI Agent -->
+        <div class="col right" id="raceR">
+          <div class="head">
+            <span><span class="label-accent">●</span>&nbsp;&nbsp;AI Agent · in your repo</span>
+            <span class="pill">read · write · run</span>
+          </div>
+          <div class="body-area" id="raceRBody"></div>
+          <div class="footer">
+            <span>OUTPUT · A PULL REQUEST</span>
+            <span id="raceRTime">0.0s</span>
+          </div>
+          <div class="stamp" id="raceRStamp">done.</div>
+        </div>
+      </div>
+    </div>
+    <div class="corner-br">PRESS R TO REPLAY</div>
+  </section>
+
+  <!-- 06 LOOP (animated pulse) -->
+  <section class="slide ink" data-label="The loop">
+    <div class="corner-tl"><span class="num anim d1" style="color:#B8B2A2">06 / 22</span><span class="eyebrow anim d1">The loop</span></div>
+    <div class="pad">
+      <h2 class="title anim d1" style="color: var(--paper);">One diagram. Recognize it <em>everywhere.</em></h2>
+      <div class="loop-anim" id="loopAnim">
+        <svg viewBox="0 0 1680 460" preserveAspectRatio="none">
+          <defs>
+            <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#F2EEE6"/>
+            </marker>
+          </defs>
+          <g stroke="#F2EEE6" stroke-width="1.5" fill="none" opacity="0.5">
+            <path d="M 240 230 L 480 230" marker-end="url(#arr)"/>
+            <path d="M 600 230 L 840 230" marker-end="url(#arr)"/>
+            <path d="M 960 230 L 1200 230" marker-end="url(#arr)"/>
+            <path d="M 1320 230 L 1560 230" marker-end="url(#arr)"/>
+            <path d="M 1620 320 Q 1620 440 800 440 Q 120 440 120 320" marker-end="url(#arr)" stroke-dasharray="6 8"/>
+          </g>
+          <circle id="pulseDot" cx="120" cy="230" r="10" fill="#CE6744"/>
+        </svg>
+        <div class="node" data-i="0" style="left: 7.1%; top: 50%;">
+          <div class="l">01 · GOAL</div>
+          <div class="t">You ask.</div>
+        </div>
+        <div class="node" data-i="1" style="left: 28.6%; top: 50%;">
+          <div class="l">02 · PLAN</div>
+          <div class="t">It drafts.</div>
+        </div>
+        <div class="node" data-i="2" style="left: 50%; top: 50%;">
+          <div class="l">03 · ACT</div>
+          <div class="t">It runs.</div>
+        </div>
+        <div class="node" data-i="3" style="left: 71.4%; top: 50%;">
+          <div class="l">04 · OBSERVE</div>
+          <div class="t">It reads.</div>
+        </div>
+        <div class="node" data-i="4" style="left: 92.9%; top: 50%;">
+          <div class="l">05 · ITERATE</div>
+          <div class="t">It adjusts.</div>
+        </div>
+      </div>
+      <div class="small anim d6" style="margin-top: 50px; text-align:center; color: #B8B2A2;">VS Code agent mode · RStudio Copilot Chat · Copilot CLI · Claude Code · all variations of this loop.</div>
+    </div>
+  </section>
+
+  <!-- 07 COMPARE TABLE -->
+  <section class="slide" data-label="What makes it different">
+    <div class="corner-tl"><span class="num anim d1">07 / 22</span><span class="eyebrow anim d1">The differences</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">What makes it <em>different.</em></h2>
+      <table class="compare" style="margin-top:60px;">
+        <thead>
+          <tr>
+            <th></th>
+            <th>AI Answer · what most have used</th>
+            <th>AI Agent · what we're discussing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-anim r1">
+            <td class="label">Unit of work</td>
+            <td>The next sentence or line</td>
+            <td><span class="accent-dot">●</span> A whole task, end-to-end</td>
+          </tr>
+          <tr class="row-anim r2">
+            <td class="label">Input</td>
+            <td>A question</td>
+            <td><span class="accent-dot">●</span> A goal — and your repo</td>
+          </tr>
+          <tr class="row-anim r3">
+            <td class="label">Tools it uses</td>
+            <td>None. Just text out.</td>
+            <td><span class="accent-dot">●</span> Shell · files · git · R itself</td>
+          </tr>
+          <tr class="row-anim r4">
+            <td class="label">Feedback loop</td>
+            <td>You read, you copy, you run</td>
+            <td><span class="accent-dot">●</span> It runs, reads output, retries</td>
+          </tr>
+          <tr class="row-anim r5">
+            <td class="label">Your job</td>
+            <td>Translate advice → code</td>
+            <td><span class="accent-dot">●</span> Specify · review · steer</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 08 LEVERAGE (animated bars) -->
+  <section class="slide" data-label="Why coders get the lift">
+    <div class="corner-tl"><span class="num anim d1">08 / 22</span><span class="eyebrow anim d1">Time multiplier</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">The lift is <em>real</em> — if you already code.</h2>
+      <div class="small mute anim d2" style="margin-top: 16px; max-width: 1400px;">Same task, same person. Time-on-task with answer-style help vs an agent. Anecdotal but representative — why people who already write R see the biggest jump.</div>
+
+      <div class="leverage">
+        <div class="lever-row r1 anim d3">
+          <div class="lab">Refactor 600-line script — chat help</div>
+          <div class="bar-wrap"><div class="bar"></div></div>
+          <div class="val">~ 4 hrs</div>
+        </div>
+        <div class="lever-row r2 anim d4">
+          <div class="lab">Refactor 600-line script — <span class="accent">agent</span></div>
+          <div class="bar-wrap"><div class="bar agent"></div></div>
+          <div class="val">~ 45 min</div>
+        </div>
+        <div class="lever-row r3 anim d5">
+          <div class="lab">QAQC function for new logger — chat help</div>
+          <div class="bar-wrap"><div class="bar"></div></div>
+          <div class="val">~ 2 hrs</div>
+        </div>
+        <div class="lever-row r4 anim d6">
+          <div class="lab">QAQC function for new logger — <span class="accent">agent</span></div>
+          <div class="bar-wrap"><div class="bar agent"></div></div>
+          <div class="val">~ 15 min</div>
+        </div>
+      </div>
+
+      <div class="small anim d8" style="margin-top: 60px; max-width: 1500px; color: var(--ink-2);">
+        Why? You already know what "good" looks like. You can specify, review, and push back. The agent does the typing; you do the judgment. People without that judgment don't get the same lift — and often get burned.
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 SECTION II -->
+  <section class="slide ink section-slide" data-label="Section — Our work">
+    <div class="corner-tl"><span class="num anim d1" style="color:#B8B2A2">II / III</span></div>
+    <div class="pad" style="justify-content: center;">
+      <div class="kicker-tag anim d1">Part two</div>
+      <h2 class="title anim d2" style="font-size: 148px; color: var(--paper);">Where this<br/>lands in <em>ARP.</em></h2>
+      <div class="mute anim d4" style="margin-top: 60px; max-width: 1400px; font-size: 36px; line-height: 1.4;">Five workflows, all within reach of a capable R user today.</div>
+    </div>
+    <div class="corner-br">09 / 22</div>
+  </section>
+
+  <!-- 10 Demo: SOP -->
+  <section class="slide" data-label="Demo — SOPs">
+    <div class="corner-tl"><span class="num anim d1">10 / 22</span><span class="eyebrow anim d1">Demo · 01 of 05</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Drafting an <em>SOP</em> from field notes.</h2>
+      <div class="demo-grid">
+        <div class="demo-card anim d2">
+          <div class="label">The ask</div>
+          <div class="body" style="color: var(--ink-2);">Point the agent at the existing photoquadrat SOP as a style reference. Feed it raw markdown from the 2025 HA cruise. Ask for a first draft matched to our section structure.</div>
+          <div class="label" style="margin-top:40px;">What you get back</div>
+          <div class="body" style="color: var(--ink-2);">A ~70% draft — headers, numbered steps, equipment list, safety section — already matched to the template. You edit the judgment calls; the scaffolding is done.</div>
+        </div>
+        <div class="demo-card anim d3">
+          <div class="label">In the terminal</div>
+          <div class="terminal">
+            <div class="row r1"><span class="prompt">›</span> <span class="user">draft an SOP for the 2025 photoquadrat method</span></div>
+            <div class="row r1"><span class="prompt"> </span> <span class="user">use docs/sops/photoquad_v3.md as the template</span></div>
+            <div class="row r1"><span class="prompt"> </span> <span class="user">pull content from field_notes/ha_2025/*.md</span></div>
+            <div class="row r2">&nbsp;</div>
+            <div class="row r3"><span class="step">› reading docs/sops/photoquad_v3.md</span></div>
+            <div class="row r4"><span class="step">› reading 7 field-note files</span></div>
+            <div class="row r5"><span class="step">› drafting 12 sections matching template</span></div>
+            <div class="row r6">&nbsp;</div>
+            <div class="row r7"><span class="agent">proposed new file:</span></div>
+            <div class="row r8"><span class="file">  docs/sops/photoquad_ha2025_DRAFT.md</span></div>
+            <div class="row r9"><span class="agent">sections: equipment · setup · capture</span></div>
+            <div class="row r9"><span class="agent">          QC · upload · safety · contacts</span></div>
+            <div class="row r10">&nbsp;</div>
+            <div class="row r11"><span class="comment"># flagged 3 spots where field notes conflicted</span></div>
+            <div class="row r12"><span class="comment"># left TODOs for you to resolve</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 Demo: benthic CSV -->
+  <section class="slide" data-label="Demo — Benthic CSV">
+    <div class="corner-tl"><span class="num anim d1">11 / 22</span><span class="eyebrow anim d1">Demo · 02 of 05</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Cleaning a <em>benthic</em> photoquadrat CSV.</h2>
+      <div class="demo-grid">
+        <div class="demo-card anim d2">
+          <div class="label">The ask</div>
+          <div class="body" style="color: var(--ink-2);">"This year's CSV has different column names than last year's. Align them to our canonical schema, fix the site codes, and write the cleaning as a function I can re-use."</div>
+          <div class="label" style="margin-top:40px;">Why it's a good fit</div>
+          <div class="body" style="color: var(--ink-2);">Tedious pattern-matching work. Judgment at the edges (does <span style="font-family:var(--mono); font-size: 28px;">SITE_CODE</span> map to <span style="font-family:var(--mono); font-size: 28px;">site_cd</span>?) — but 90% mechanical.</div>
+        </div>
+        <div class="demo-card anim d3">
+          <div class="label">Proposed diff</div>
+          <div class="terminal">
+            <div class="row r1"><span class="file">R/clean_benthic.R</span>  <span class="comment">· new file</span></div>
+            <div class="row r2">&nbsp;</div>
+            <div class="row r3"><span class="diff-add">+ clean_benthic <- function(path) {</span></div>
+            <div class="row r4"><span class="diff-add">+   raw <- readr::read_csv(path)</span></div>
+            <div class="row r5"><span class="diff-add">+   raw |></span></div>
+            <div class="row r6"><span class="diff-add">+     dplyr::rename_with(tolower) |></span></div>
+            <div class="row r7"><span class="diff-add">+     dplyr::rename(</span></div>
+            <div class="row r8"><span class="diff-add">+       site_id    = site_cd,</span></div>
+            <div class="row r9"><span class="diff-add">+       transect_m = trans_len_m,</span></div>
+            <div class="row r10"><span class="diff-add">+       cover_pct  = pct_cover</span></div>
+            <div class="row r11"><span class="diff-add">+     ) |></span></div>
+            <div class="row r12"><span class="diff-add">+     dplyr::left_join(site_lookup, "site_id")</span></div>
+            <div class="row r13"><span class="diff-add">+ }</span></div>
+            <div class="row r14"><span class="comment"># run tests?</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 Demo: fish refactor -->
+  <section class="slide" data-label="Demo — Fish refactor">
+    <div class="corner-tl"><span class="num anim d1">12 / 22</span><span class="eyebrow anim d1">Demo · 03 of 05</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Refactoring a <em>600-line</em> fish-survey script.</h2>
+      <div class="demo-grid">
+        <div class="demo-card anim d2">
+          <div class="label">The ask</div>
+          <div class="body" style="color: var(--ink-2);">"Break <span style="font-family:var(--mono); font-size: 28px;">analyze_fish.R</span> into small functions with roxygen headers. Keep behavior identical. Add tests for the size-class binning logic. Don't touch anything else."</div>
+          <div class="label" style="margin-top:40px;">Why it matters for us</div>
+          <div class="body" style="color: var(--ink-2);">Every group has one of these scripts. The agent is happy to do tedious surgery a human keeps putting off. You read the diff and approve.</div>
+        </div>
+        <div class="demo-card anim d3">
+          <div class="label">Plan, before it touches anything</div>
+          <div class="terminal">
+            <div class="row r1"><span class="agent">plan ›</span></div>
+            <div class="row r2"><span class="step">  1. read analyze_fish.R (612 lines)</span></div>
+            <div class="row r3"><span class="step">  2. identify logical blocks → 8 functions</span></div>
+            <div class="row r4"><span class="step">  3. extract to R/fish_*.R files</span></div>
+            <div class="row r5"><span class="step">  4. add roxygen docs to each</span></div>
+            <div class="row r6"><span class="step">  5. write testthat tests for bin_size_class()</span></div>
+            <div class="row r7"><span class="step">  6. run pipeline → compare outputs</span></div>
+            <div class="row r8"><span class="step">  7. leave analyze_fish.R as orchestrator</span></div>
+            <div class="row r9">&nbsp;</div>
+            <div class="row r10"><span class="comment"># touches 9 files. nothing outside R/ or tests/.</span></div>
+            <div class="row r11"><span class="prompt">›</span> <span class="user">proceed? (yes / edit plan / no)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 Demo: Climate QAQC -->
+  <section class="slide" data-label="Demo — Climate QAQC">
+    <div class="corner-tl"><span class="num anim d1">13 / 22</span><span class="eyebrow anim d1">Demo · 04 of 05</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">QAQC for a <em>climate</em> logger download.</h2>
+      <div class="demo-grid">
+        <div class="demo-card anim d2">
+          <div class="label">The ask</div>
+          <div class="body" style="color: var(--ink-2);">"Write a QAQC function that flags sensor drift, gaps over 30 minutes, and out-of-range values. Run it on last cruise's SBE56 downloads. Show me what it flags before writing anything back."</div>
+          <div class="label" style="margin-top:40px;">The human part</div>
+          <div class="body" style="color: var(--ink-2);">You decide if the flags are right. You tune thresholds. The agent handles iteration — <em>"that caught too much, try z-score &gt; 4"</em> — and updates.</div>
+        </div>
+        <div class="demo-card anim d3">
+          <div class="label">Iterating with you</div>
+          <div class="terminal">
+            <div class="row r1"><span class="step">› ran qa_logger() on 14 files</span></div>
+            <div class="row r2"><span class="step">› flagged 2,147 points across 6 files</span></div>
+            <div class="row r3">&nbsp;</div>
+            <div class="row r4"><span class="agent">summary:</span></div>
+            <div class="row r5"><span class="step">  drift:        812 pts · 3 files</span></div>
+            <div class="row r6"><span class="step">  gaps:         14 events · all &lt; 45min</span></div>
+            <div class="row r7"><span class="step">  out-of-range: 1,335 pts · 1 file</span></div>
+            <div class="row r8">&nbsp;</div>
+            <div class="row r9"><span class="comment"># the 1,335-pt file is hawaii_site_42_2024.csv</span></div>
+            <div class="row r10"><span class="comment"># temp maxes at 31.2°C — looks like an</span></div>
+            <div class="row r11"><span class="comment"># air-exposure event during deployment</span></div>
+            <div class="row r12">&nbsp;</div>
+            <div class="row r13"><span class="prompt">›</span> <span class="user">exclude first 20 min of that file, re-run</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 Demo: R package -->
+  <section class="slide" data-label="Demo — R package">
+    <div class="corner-tl"><span class="num anim d1">14 / 22</span><span class="eyebrow anim d1">Demo · 05 of 05</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">A folder of helpers, packaged <em>properly.</em></h2>
+      <div class="demo-grid">
+        <div class="demo-card anim d2">
+          <div class="label">The ask</div>
+          <div class="body" style="color: var(--ink-2);">"Turn <span style="font-family:var(--mono); font-size: 28px;">~/helpers/</span> into a real R package. DESCRIPTION, NAMESPACE, tests folder, pkgdown site, and a GitHub Actions workflow that runs <span style="font-family:var(--mono); font-size: 28px;">R CMD check</span>."</div>
+          <div class="label" style="margin-top:40px;">Why it's a classic</div>
+          <div class="body" style="color: var(--ink-2);">Mechanical, well-documented, boring. Agents love boring work. Division gets reusable infrastructure instead of another "source this script" email.</div>
+        </div>
+        <div class="demo-card anim d3">
+          <div class="label">What lands on disk</div>
+          <div class="terminal">
+            <div class="row r1"><span class="file">esdtools/</span></div>
+            <div class="row r2"><span class="step">  DESCRIPTION</span>          <span class="comment"># filled</span></div>
+            <div class="row r3"><span class="step">  NAMESPACE</span>            <span class="comment"># auto</span></div>
+            <div class="row r4"><span class="step">  R/</span></div>
+            <div class="row r5"><span class="step">    clean_benthic.R</span>    <span class="comment"># roxygen</span></div>
+            <div class="row r6"><span class="step">    qa_logger.R</span>        <span class="comment"># roxygen</span></div>
+            <div class="row r7"><span class="step">    fish_bins.R</span>        <span class="comment"># roxygen</span></div>
+            <div class="row r8"><span class="step">  tests/testthat/</span>      <span class="comment"># 14 tests</span></div>
+            <div class="row r9"><span class="step">  vignettes/getting-started.Rmd</span></div>
+            <div class="row r10"><span class="step">  pkgdown/_pkgdown.yml</span></div>
+            <div class="row r11"><span class="step">  .github/workflows/R-CMD-check.yaml</span></div>
+            <div class="row r12">&nbsp;</div>
+            <div class="row r13"><span class="agent">› R CMD check · 0E · 0W · 1 note</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 Discussion 1 -->
+  <section class="slide discussion" data-label="Discussion — Point it first">
+    <div class="corner-tl"><span class="num anim d1">15 / 22</span><span class="eyebrow anim d1">Pause · discussion</span></div>
+    <div class="pad" style="justify-content: center;">
+      <div style="display:flex; gap:40px; align-items:flex-start;" class="anim d1">
+        <div style="color: var(--accent); font-family: var(--serif); font-size: 140px; line-height: 0.7; font-style: italic;">“</div>
+        <h2 class="title" style="font-size: 108px;">If you had a capable junior for <em>one</em> hour this week — what would you point them at?</h2>
+      </div>
+      <div class="small mute anim d4" style="margin-top: 140px;">Don't answer yet. Just sit with it. We'll come back.</div>
+    </div>
+  </section>
+
+  <!-- 16 SECTION III -->
+  <section class="slide ink section-slide" data-label="Section — The new skill">
+    <div class="corner-tl"><span class="num anim d1" style="color:#B8B2A2">III / III</span></div>
+    <div class="pad" style="justify-content: center;">
+      <div class="kicker-tag anim d1">Part three</div>
+      <h2 class="title anim d2" style="font-size: 148px; color: var(--paper);">The new skill<br/>is <em>management.</em></h2>
+      <div class="mute anim d4" style="margin-top: 60px; max-width: 1400px; font-size: 36px; line-height: 1.4;">Which is exactly why people already deep in code get the biggest lift.</div>
+    </div>
+    <div class="corner-br">16 / 22</div>
+  </section>
+
+  <!-- 17 Prompts that work -->
+  <section class="slide" data-label="Prompts that work">
+    <div class="corner-tl"><span class="num anim d1">17 / 22</span><span class="eyebrow anim d1">Four patterns</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Prompts that <em>actually</em> work.</h2>
+      <div class="pattern-grid">
+        <div class="pattern anim d2">
+          <div class="pname">01 · Give it context</div>
+          <div class="pex">"Use R/clean_benthic.R as the style reference. Match its function signature."</div>
+          <div class="pwhy">Like briefing a new hire. Don't assume it knows your repo.</div>
+        </div>
+        <div class="pattern anim d3">
+          <div class="pname">02 · Constrain the output</div>
+          <div class="pex">"Only touch files under R/ and tests/. Don't change DESCRIPTION."</div>
+          <div class="pwhy">Limits blast radius. Makes review fast.</div>
+        </div>
+        <div class="pattern anim d4">
+          <div class="pname">03 · Plan before you act</div>
+          <div class="pex">"Write a step-by-step plan first. Wait for my OK before editing anything."</div>
+          <div class="pwhy">Catches bad approaches cheaply.</div>
+        </div>
+        <div class="pattern anim d5">
+          <div class="pname">04 · Make it show its work</div>
+          <div class="pex">"After each step, print a one-line summary and the files you touched."</div>
+          <div class="pwhy">You stay in the loop without watching every keystroke.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 When to stop -->
+  <section class="slide" data-label="When to stop">
+    <div class="corner-tl"><span class="num anim d1">18 / 22</span><span class="eyebrow anim d1">Knowing when to stop</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Knowing when to <em>stop</em> the agent.</h2>
+      <div class="stop-list">
+        <div class="row anim d2">
+          <div class="when">It's going in circles.</div>
+          <div class="why">Same error three tries in a row. Kill it, read the error yourself, come back with more context.</div>
+        </div>
+        <div class="row anim d3">
+          <div class="when">It's touching files you didn't ask for.</div>
+          <div class="why">Scope creep. Stop, narrow the prompt, restart. Don't trust a wandering agent with commits.</div>
+        </div>
+        <div class="row anim d4">
+          <div class="when">Tests fail in new, creative ways.</div>
+          <div class="why">It's patching around the problem, not solving it. Revert and describe the failure directly.</div>
+        </div>
+        <div class="row anim d5">
+          <div class="when">You don't understand the diff.</div>
+          <div class="why">Hard rule. Don't merge code you can't read. Ask it to explain — or simplify — or both.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 Reproducibility -->
+  <section class="slide" data-label="Reproducibility">
+    <div class="corner-tl"><span class="num anim d1">19 / 22</span><span class="eyebrow anim d1">Non-negotiable</span></div>
+    <div class="pad" style="justify-content: center;">
+      <h2 class="title anim d1">Reproducibility and code review <em>still win.</em></h2>
+      <div class="two-col" style="margin-top: 80px;">
+        <div class="anim d2">
+          <h4>Same standards apply</h4>
+          <ul>
+            <li>Every agent change goes through git</li>
+            <li>Same PR review as human code</li>
+            <li>renv / lockfile for package versions</li>
+            <li>Set seeds. Document them.</li>
+          </ul>
+        </div>
+        <div class="anim d4">
+          <h4>What doesn't change</h4>
+          <ul>
+            <li>A scientist still owns every line</li>
+            <li>SOPs still describe what happened</li>
+            <li>"An agent did it" is not a citation</li>
+            <li>Can't reproduce it → don't ship it</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 Getting started -->
+  <section class="slide" data-label="Getting started">
+    <div class="corner-tl"><span class="num anim d1">20 / 22</span><span class="eyebrow anim d1">This week</span></div>
+    <div class="pad">
+      <h2 class="title anim d1">Getting started — in <em>twenty minutes.</em></h2>
+      <div class="reveal-list">
+        <div class="item">
+          <div class="n">01</div>
+          <div><div class="t">Pick something small.</div><div class="d">Not the crown-jewel pipeline. A tedious task you'd hand to a summer intern.</div></div>
+        </div>
+        <div class="item">
+          <div class="n">02</div>
+          <div><div class="t">Pick one tool.</div><div class="d">VS Code agent mode, RStudio Copilot Chat, Copilot CLI, Claude Code — any of them. Don't shop.</div></div>
+        </div>
+        <div class="item">
+          <div class="n">03</div>
+          <div><div class="t">Write a real prompt.</div><div class="d">Context, constraint, plan-first, show-your-work. The four patterns.</div></div>
+        </div>
+        <div class="item">
+          <div class="n">04</div>
+          <div><div class="t">Review the diff.</div><div class="d">Pretend it's a pull request from a stranger. Because it basically is.</div></div>
+        </div>
+        <div class="item">
+          <div class="n">05</div>
+          <div><div class="t">Report back next meeting.</div><div class="d">What worked, what didn't, what surprised you. The division learns faster than any one of us.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21 Discussion 2 -->
+  <section class="slide discussion" data-label="Discussion — Open questions">
+    <div class="corner-tl"><span class="num anim d1">21 / 22</span><span class="eyebrow anim d1">Open discussion</span></div>
+    <div class="pad" style="justify-content: center;">
+      <h2 class="title anim d1" style="margin-bottom: 60px;">Open questions <em>for ARP.</em></h2>
+      <ol>
+        <li class="anim d2"><span>Where does this fit — or not fit — in our Program?</span></li>
+        <li class="anim d4"><span>What are the roadblocks for access?</span></li>
+        <li class="anim d6"><span>Who wants to try one workflow and report back next meeting?</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 22 Resources -->
+  <section class="slide ink" data-label="Resources">
+    <div class="corner-tl"><span class="num anim d1" style="color:#B8B2A2">22 / 22</span><span class="eyebrow anim d1" style="color:#B8B2A2">Resources · thanks</span></div>
+    <div class="pad" style="justify-content: center;">
+      <h2 class="title anim d1" style="color: var(--paper);">A few places to <em>start.</em></h2>
+      <div class="res-list">
+        <div class="r anim d2">
+          <div class="k" style="color:#B8B2A2">On-ramp</div>
+          <div class="v" style="color: var(--paper);">Copilot CLI for Beginners</div>
+          <div class="u">github.com/github/copilot-cli-for-beginners</div>
+        </div>
+        <div class="r anim d3">
+          <div class="k" style="color:#B8B2A2">Our context</div>
+          <div class="v" style="color: var(--paper);">ARP resources &amp; methods</div>
+          <div class="u">noaa-pifsc.github.io/esd-arp-resources</div>
+        </div>
+        <div class="r anim d4">
+          <div class="k" style="color:#B8B2A2">Core concept</div>
+          <div class="v" style="color: var(--paper);">Plan · Act · Observe · Iterate</div>
+          <div class="u">every agent tool is a version of this loop</div>
+        </div>
+        <div class="r anim d5">
+          <div class="k" style="color:#B8B2A2">Next step</div>
+          <div class="v" style="color: var(--paper);">Pair with me on one workflow.</div>
+          <div class="u">bring your messiest R script</div>
+        </div>
+      </div>
+      <div class="anim d7" style="margin-top: 80px; font-family: var(--serif); font-style: italic; font-size: 56px; color: #B8B2A2;">Thanks — over to the room.</div>
+    </div>
+  </section>
+
+</deck-stage>
+
+<script src="../deck-stage.js"></script>
+<script>
+  // ===== Active-slide tracker — adds .is-active to the current slide so animations only run when visible =====
+  const stage = document.querySelector('deck-stage');
+  function applyActive() {
+    const slides = stage.querySelectorAll('section.slide');
+    slides.forEach(s => s.classList.remove('is-active'));
+    // deck-stage marks the active slide via visibility on the inner; we rely on slidechange event
+  }
+  stage.addEventListener('slidechange', (e) => {
+    const slides = stage.querySelectorAll('section.slide');
+    slides.forEach(s => s.classList.remove('is-active'));
+    if (e.detail.slide) e.detail.slide.classList.add('is-active');
+
+    // Run WAAPI entrance animations on the active slide
+    if (e.detail.slide) animateSlideIn(e.detail.slide);
+
+    // Trigger slide-specific scripted animations
+    if (e.detail.slide.dataset.label === 'Answer vs Agent — the race') {
+      runRace();
+    }
+    if (e.detail.slide.dataset.label === 'The loop') {
+      runLoop();
+    }
+    if (e.detail.slide.dataset.label === 'Title') {
+      seedTitleDots();
+    }
+  });
+
+  // ===== WAAPI-driven entrance animations =====
+  // CSS keyframes get suppressed by deck-stage's parent opacity transition,
+  // so we drive each .anim element via WAAPI which runs reliably regardless.
+  const ANIM_DELAYS = { d1: 100, d2: 280, d3: 460, d4: 640, d5: 820, d6: 1000, d7: 1180, d8: 1360 };
+  function animateSlideIn(slide) {
+    // Generic .anim risers
+    slide.querySelectorAll('.anim').forEach(el => {
+      let delay = 0;
+      for (const k in ANIM_DELAYS) { if (el.classList.contains(k)) { delay = ANIM_DELAYS[k]; break; } }
+      el.animate(
+        [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'translateY(0)' }],
+        { duration: 600, delay, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' }
+      );
+    });
+    // Compare-table rows
+    slide.querySelectorAll('table.compare tr.row-anim').forEach((el, i) => {
+      const m = [...el.classList].find(c => /^r\d+$/.test(c));
+      const idx = m ? parseInt(m.slice(1)) : (i + 1);
+      el.animate(
+        [{ opacity: 0, transform: 'translateX(-12px)' }, { opacity: 1, transform: 'translateX(0)' }],
+        { duration: 500, delay: 200 + (idx - 1) * 180, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' }
+      );
+    });
+    // Terminal rows
+    slide.querySelectorAll('.terminal .row').forEach(el => {
+      const m = [...el.classList].find(c => /^r\d+$/.test(c));
+      const idx = m ? parseInt(m.slice(1)) : 1;
+      el.animate(
+        [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }],
+        { duration: 380, delay: 200 + (idx - 1) * 160, easing: 'ease', fill: 'both' }
+      );
+    });
+    // Definition four words
+    slide.querySelectorAll('.defbox .v em').forEach(el => {
+      const wm = [...el.classList].find(c => /^w\d+$/.test(c));
+      const idx = wm ? parseInt(wm.slice(1)) : 1;
+      el.animate(
+        [{ opacity: 0, transform: 'translateY(20px)' }, { opacity: 1, transform: 'translateY(0)' }],
+        { duration: 500, delay: 400 + (idx - 1) * 300, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' }
+      );
+    });
+    // Reveal-list items
+    slide.querySelectorAll('.reveal-list .item').forEach((el, i) => {
+      el.animate(
+        [{ opacity: 0, transform: 'translateX(-16px)' }, { opacity: 1, transform: 'translateX(0)' }],
+        { duration: 500, delay: 200 + i * 180, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' }
+      );
+    });
+    // Leverage bars
+    slide.querySelectorAll('.lever-row').forEach((row, i) => {
+      const widths = ['92%', '18%', '78%', '10%'];
+      const delays = [200, 600, 1000, 1400];
+      const bar = row.querySelector('.bar');
+      if (!bar) return;
+      bar.animate(
+        [{ width: '0%' }, { width: widths[i] || '50%' }],
+        { duration: 1400, delay: delays[i] || 200 * (i + 1), easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' }
+      );
+    });
+    // Title slide arrow + dots fade-in
+    slide.querySelectorAll('.title-slide .arrow').forEach(el => {
+      el.animate(
+        [{ opacity: 0, transform: 'translateX(-30px)' }, { opacity: 1, transform: 'translateX(0)' }],
+        { duration: 900, delay: 600, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'both' }
+      );
+    });
+    slide.querySelectorAll('.title-bg .dot').forEach(el => {
+      const d = parseInt(el.dataset.dly || '0');
+      el.animate([{ opacity: 0 }, { opacity: 0.5 }], { duration: 1200, delay: d, easing: 'ease', fill: 'both' });
+    });
+  }
+
+  // ===== Title slide: scatter dot field =====
+  let titleSeeded = false;
+  function seedTitleDots() {
+    if (titleSeeded) return;
+    titleSeeded = true;
+    const bg = document.getElementById('title-bg');
+    if (!bg) return;
+    const N = 80;
+    for (let i = 0; i < N; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      d.style.left = (Math.random() * 100) + '%';
+      d.style.top = (Math.random() * 100) + '%';
+      d.style.transform = `scale(${0.4 + Math.random() * 1.2})`;
+      d.dataset.dly = String(Math.floor(Math.random() * 1500 + 500));
+      bg.appendChild(d);
+    }
+  }
+
+  // ===== RACE slide: animated typewriter on left, agent steps on right =====
+  let raceTimers = [];
+  function clearRace() {
+    raceTimers.forEach(t => clearTimeout(t));
+    raceTimers = [];
+    const L = document.getElementById('raceLBody');
+    const R = document.getElementById('raceRBody');
+    if (L) L.innerHTML = '';
+    if (R) R.innerHTML = '';
+    const ls = document.getElementById('raceLStamp'); if (ls) ls.classList.remove('show');
+    const rs = document.getElementById('raceRStamp'); if (rs) rs.classList.remove('show');
+    const lt = document.getElementById('raceLTime'); if (lt) lt.textContent = '0.0s';
+    const rt = document.getElementById('raceRTime'); if (rt) rt.textContent = '0.0s';
+  }
+
+  function runRace() {
+    clearRace();
+    setTimeout(() => {
+      // Left side: chat answer typing out advice
+      const leftText = [
+        "Sure — here's how I'd approach it:",
+        "",
+        "1. Read the CSV with readr::read_csv(),",
+        "   inspect column names with names(df).",
+        "2. Compare against your canonical schema.",
+        "3. Use dplyr::rename() to align columns,",
+        "   then left_join() against your lookup table.",
+        "4. Filter rows where region is NA.",
+        "",
+        "Want me to write the code? Paste the column",
+        "names and a few rows and I can sketch it out."
+      ];
+      typeIntoLeft(leftText, 0, 0, performance.now());
+
+      // Right side: agent doing the work in steps
+      const rightSteps = [
+        { delay: 400, html: '<span class="step">› reading R/clean_benthic.R for style</span>' },
+        { delay: 900, html: '<span class="step">› reading data/benthic_2025.csv (4,213 rows)</span>' },
+        { delay: 1500, html: '<span class="step">› inspecting columns…</span>' },
+        { delay: 2100, html: '<span class="warn">  found mismatch: SITE_CODE vs site_cd</span>' },
+        { delay: 2700, html: '<span class="warn">  found mismatch: trans_len_m vs transect_m</span>' },
+        { delay: 3300, html: '<span class="step">› writing R/clean_benthic.R</span>' },
+        { delay: 3900, html: '<span class="step">› running tests/testthat/test-clean.R</span>' },
+        { delay: 4500, html: '<span class="ok">  ✓ 7 / 7 tests pass</span>' },
+        { delay: 5100, html: '<span class="step">› git: checkout -b clean-benthic-2025</span>' },
+        { delay: 5700, html: '<span class="step">› git: commit · 1 file changed (+24 -0)</span>' },
+        { delay: 6300, html: '<span class="ok">  ✓ pull request opened: #142</span>' },
+      ];
+      const Rb = document.getElementById('raceRBody');
+      rightSteps.forEach(s => {
+        raceTimers.push(setTimeout(() => {
+          const div = document.createElement('div');
+          div.innerHTML = s.html;
+          div.style.opacity = '0';
+          div.style.transition = 'opacity 220ms ease, transform 220ms ease';
+          div.style.transform = 'translateY(4px)';
+          Rb.appendChild(div);
+          requestAnimationFrame(() => { div.style.opacity = '1'; div.style.transform = 'none'; });
+        }, s.delay));
+      });
+
+      // Timers (ticking clocks)
+      const startT = performance.now();
+      const lt = document.getElementById('raceLTime');
+      const rt = document.getElementById('raceRTime');
+      const tick = () => {
+        const e = (performance.now() - startT) / 1000;
+        if (e > 8.5) return;
+        if (lt) lt.textContent = (Math.min(e, 7.2)).toFixed(1) + 's';
+        if (rt) rt.textContent = (Math.min(e, 6.4)).toFixed(1) + 's';
+        raceTimers.push(setTimeout(tick, 60));
+      };
+      tick();
+
+      // Stamps
+      raceTimers.push(setTimeout(() => {
+        document.getElementById('raceRStamp').classList.add('show');
+      }, 6500));
+      raceTimers.push(setTimeout(() => {
+        document.getElementById('raceLStamp').classList.add('show');
+      }, 7400));
+    }, 600);
+  }
+
+  function typeIntoLeft(lines, lineIdx, charIdx, lastTime) {
+    const Lb = document.getElementById('raceLBody');
+    if (!Lb) return;
+    if (lineIdx >= lines.length) return;
+    const line = lines[lineIdx];
+    let lineDiv = Lb.children[lineIdx];
+    if (!lineDiv) {
+      lineDiv = document.createElement('div');
+      lineDiv.className = 'typed-line';
+      lineDiv.innerHTML = '&nbsp;';
+      Lb.appendChild(lineDiv);
+    }
+    if (charIdx > line.length) {
+      // next line
+      raceTimers.push(setTimeout(() => typeIntoLeft(lines, lineIdx + 1, 0, performance.now()), 120));
+      return;
+    }
+    lineDiv.textContent = line.slice(0, charIdx) || '\u00A0';
+    raceTimers.push(setTimeout(() => typeIntoLeft(lines, lineIdx, charIdx + 1, performance.now()), 28 + Math.random() * 28));
+  }
+
+  // ===== LOOP slide: pulse traveling around 5 nodes =====
+  let loopTimers = [];
+  function runLoop() {
+    loopTimers.forEach(t => clearTimeout(t));
+    loopTimers = [];
+    const nodes = document.querySelectorAll('#loopAnim .node');
+    const dot = document.getElementById('pulseDot');
+    if (!nodes.length || !dot) return;
+    const positions = [120, 480, 840, 1200, 1560]; // x in svg coords
+    let i = 0;
+    nodes.forEach(n => n.classList.remove('active'));
+
+    function step() {
+      nodes.forEach(n => n.classList.remove('active'));
+      nodes[i].classList.add('active');
+      dot.setAttribute('cx', positions[i]);
+      const next = (i + 1) % positions.length;
+      // animate dot to next
+      const fromX = positions[i];
+      const toX = positions[next];
+      const start = performance.now();
+      const dur = 700;
+      function frame(t) {
+        const p = Math.min(1, (t - start) / dur);
+        const e = p < 0.5 ? 2*p*p : -1 + (4 - 2*p)*p;
+        dot.setAttribute('cx', fromX + (toX - fromX) * e);
+        if (p < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+      i = next;
+      loopTimers.push(setTimeout(step, 1200));
+    }
+    loopTimers.push(setTimeout(step, 800));
+  }
+
+  // initial: mark first slide active
+  setTimeout(() => {
+    const first = document.querySelector('section.slide');
+    if (first) {
+      first.classList.add('is-active');
+      if (first.dataset.label === 'Title') seedTitleDots();
+      animateSlideIn(first);
+    }
+  }, 50);
+</script>
+<a id="hub-back" href="../index.html" title="Back to AI4ME Hub" aria-label="Back to AI4ME Hub">&#8592; Hub</a>
+<style>
+  #hub-back {
+    position: fixed;
+    top: 14px;
+    left: 18px;
+    z-index: 9999;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: #F2EEE6;
+    background: rgba(21,20,15,0.72);
+    border: 1px solid rgba(242,238,230,0.18);
+    padding: 6px 13px;
+    border-radius: 6px;
+    text-decoration: none;
+    backdrop-filter: blur(6px);
+    transition: background 0.18s, opacity 0.18s;
+    opacity: 0.72;
+  }
+  #hub-back:hover { background: rgba(21,20,15,0.92); opacity: 1; }
+</style>
+</body>
+</html>
