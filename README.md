@@ -26,3 +26,6 @@ This repository is a scientific product and is not official communication of the
 
 ## License
 See [LICENSE.md](LICENSE.md).
+
+
+Hey Mike, I'm just making this fork to help my a guide for the hackathon users who don't know anything about github. Lunch later?
